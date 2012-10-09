@@ -1,4 +1,4 @@
-// Dean Edwards/Matthias Miller/John Resig
+
 function onFailSoHard(e) {
     if (e.code == 1) {
         console.log('User denied access to their camera');
@@ -8,43 +8,47 @@ function onFailSoHard(e) {
 }
 
 function getGeo() {
-	if (navigator.geolocation) {
-	  navigator.geolocation.getCurrentPosition(success, error);
-	} else {
-	  alert("Not Supported!");
-	}
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(success, error);
+    } else {
+        alert("Not Supported!");
+    }
 
-	function success(position) {
-	  console.log(position.coords.latitude);
-	  console.log(position.coords.longitude);
-	}
+    function success(position) {
+        console.log(position.coords.latitude);
+        console.log(position.coords.longitude);
+    }
 
-	function error(msg) {
-	  console.log(msg);	
-	  console.log(typeof msg == 'string' ? msg : "error");
-	}
+    function error(msg) {
+        console.log(msg);
+        console.log(typeof msg == 'string' ? msg : "error");
+    }
 
-	var watchId = navigator.geolocation.watchPosition(function(position) {  
-	  console.log(position.coords.latitude);
-	  console.log(position.coords.longitude);
-	});
+    var watchId = navigator.geolocation.watchPosition(function (position) {
+        console.log(position.coords.latitude);
+        console.log(position.coords.longitude);
+    });
 
-	navigator.geolocation.clearWatch(watchId);
+    navigator.geolocation.clearWatch(watchId);
 }
 
 function closedEnough() {
-	return true;
+    return true;
 }
 
 function tick() {
-			window.webkitRequestAnimationFrame(tick);
-			
-			if (video.readyState === video.HAVE_ENOUGH_DATA) {
-				$(video).objectdetect("all", {scaleMin: 3, scaleFactor: 1.1, classifier: objectdetect.frontalface}, function(coords) {
-					if (coords[0]) {
-						coords = smoother.smooth(coords[0]);
-						console.log(coords);
-						/*
+    window.webkitRequestAnimationFrame(tick);
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        $(video).objectdetect("all", {
+            scaleMin: 3,
+            scaleFactor: 1.1,
+            classifier: objectdetect.frontalface
+        }, function (coords) {
+            if (coords[0]) {
+                coords = smoother.smooth(coords[0]);
+                console.log(coords);
+                /*
 						$("#glasses").css({
 							"left":    ~~(coords[0] + coords[2] * 1.0/8 + $(video).offset().left) + "px",
 							"top":     ~~(coords[1] + coords[3] * 0.8/8 + $(video).offset().top) + "px",
@@ -53,36 +57,39 @@ function tick() {
 							"display": "block"
 						});
 						*/
-						for (var i = 0; i < coords.length; ++i) {
-				$(this).highlight(coords[i], "red");
-				console.log($(this));
-				$(this).objectdetect("all", {classifier: objectdetect.eye, selection: coords[i]}, function(eyes) {
-					for (var j = 0; j < eyes.length; ++j) {
-						$(this).highlight(eyes[j], "blue");
-					}
-				});
-			}
-					} 
-				});
-			}
-		}
-		
-$.fn.highlight = function(rect, color) {
-		$("<div />", {
-			"css": {
-				"border":   "2px solid " + color,
-				"position":	"absolute",
-				"left":		($(this).offset().left + rect[0]) + "px",
-				"top":		($(this).offset().top  + rect[1]) + "px",
-				"width": 	rect[2] + "px",
-				"height": 	rect[3] + "px"
-			}
-		}).appendTo("body");
-	}
+                for (var i = 0; i < coords.length; ++i) {
+                    $(this).highlight(coords[i], "red");
+                    console.log($(this));
+                    $(this).objectdetect("all", {
+                        classifier: objectdetect.eye,
+                        selection: coords[i]
+                    }, function (eyes) {
+                        for (var j = 0; j < eyes.length; ++j) {
+                            $(this).highlight(eyes[j], "blue");
+                        }
+                    });
+                }
+            }
+        });
+    }
+}
 
-var video;	
+$.fn.highlight = function (rect, color) {
+    $("<div />", {
+        "css": {
+            "border": "2px solid " + color,
+            "position": "absolute",
+            "left": ($(this).offset().left + rect[0]) + "px",
+            "top": ($(this).offset().top + rect[1]) + "px",
+            "width": rect[2] + "px",
+            "height": rect[3] + "px"
+        }
+    }).appendTo("body");
+}
+
+var video;
 var smoother = new Smoother(0.85, [0, 0, 0, 0, 0]);
-	
+
 function runVideo() {
     video = document.querySelector('#screenshot-stream');
     var button = document.querySelector('#screenshot-button');
@@ -137,17 +144,15 @@ function runVideo() {
         video.pause();
         localMediaStream.stop();
     }, false);
-    
+
 }
 
 
-		
 
-var readyStateCheckInterval = setInterval(function() {
+var readyStateCheckInterval = setInterval(function () {
     if (document.readyState === "complete") {
-    	getGeo();
+        getGeo();
         runVideo();
         clearInterval(readyStateCheckInterval);
     }
 }, 10);
-
