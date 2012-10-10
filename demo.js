@@ -32,11 +32,25 @@ function getGeo() {
     navigator.geolocation.clearWatch(watchId);
 }
 
-function closedEnough() {
-    return true;
+function closedEnough(rect) {
+	if ($(video).width / 4 < rect[2] && $(video).height / 4 < rect[3]) {
+		return true;
+	
+	}
+    return false;
+}
+
+function captureFaceImage(imageUrl, rect) {
+	var imgCtx = img.getContext('2d');
+	var imageObj = new Image();
+	imageObj.onload = function() {
+			imgCtx.drawImage(imageObj, x, y, w, h, 0, 0, w, h);
+		}
+	imageObj.src = imageUrl;
 }
 
 function tick() {
+	$('#hl').remove();
     window.webkitRequestAnimationFrame(tick);
 
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -48,27 +62,13 @@ function tick() {
             if (coords[0]) {
                 coords = smoother.smooth(coords[0]);
                 console.log(coords);
-                /*
-						$("#glasses").css({
-							"left":    ~~(coords[0] + coords[2] * 1.0/8 + $(video).offset().left) + "px",
-							"top":     ~~(coords[1] + coords[3] * 0.8/8 + $(video).offset().top) + "px",
-							"width":   ~~(coords[2] * 6/8) + "px",
-							"height":  ~~(coords[3] * 6/8) + "px",
-							"display": "block"
-						});
-						*/
-                for (var i = 0; i < coords.length; ++i) {
-                    $(this).highlight(coords[i], "red");
-                    console.log($(this));
-                    $(this).objectdetect("all", {
-                        classifier: objectdetect.eye,
-                        selection: coords[i]
-                    }, function (eyes) {
-                        for (var j = 0; j < eyes.length; ++j) {
-                            $(this).highlight(eyes[j], "blue");
-                        }
-                    });
+                
+                $(this).highlight(coords, "red");
+                
+                if (closedEnough(coords)) {
+                	//capture the face image
                 }
+              
             }
         });
     }
@@ -76,6 +76,7 @@ function tick() {
 
 $.fn.highlight = function (rect, color) {
     $("<div />", {
+    	"id": "hl",
         "css": {
             "border": "2px solid " + color,
             "position": "absolute",
@@ -88,13 +89,14 @@ $.fn.highlight = function (rect, color) {
 }
 
 var video;
+var img;
 var smoother = new Smoother(0.85, [0, 0, 0, 0, 0]);
 
 function runVideo() {
     video = document.querySelector('#screenshot-stream');
     var button = document.querySelector('#screenshot-button');
     var canvas = document.querySelector('#screenshot-canvas');
-    var img = document.querySelector('#screenshot');
+    img = document.querySelector('#screenshot');
     var ctx = canvas.getContext('2d');
     var localMediaStream = null;
 
