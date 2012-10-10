@@ -148,7 +148,8 @@ function closedEnough(rect) {
 }
 
 function captureFaceImage(imageUrl, rect, painCanvas) {
-	
+
+	painCanvas.style.display = 'block';
 	painCanvas.width = rect[2];
 	painCanvas.height = rect[3];
 	//img.width = rect[2];
@@ -175,12 +176,16 @@ function captureAndAuthenticate(coords) {
 						var checkAuth = setInterval(function() {
 							var auth = scaleCompareImage();
 							if (auth) {
+								$('#notification').removeClass();
+								$('#notification').addClass('alert alert-success');
 								$('#notification').text('Authorized...');
 								//continue to monitor
 								faceDetected = false;	
 								
 								
 							} else {
+								$('#notification').removeClass();
+								$('#notification').addClass('alert alert-error');
 								$('#notification').text('Not authorized. Taking SOME ACTION ...');
 							}
 							clearInterval(checkAuth);
@@ -233,7 +238,20 @@ $.fn.highlight = function (rect, color) {
         }
     }).appendTo("body");
 }
-
+$.fn.recording = function (color) {
+	$("<div />", {
+		"id": "rec",
+		"css": {
+			"border-radius": "50%",
+			"color": color,
+			"position": "absolute",
+			"left": ($(this).offset().left + 10) + "px",
+			"top": ($(this).offset().top + 10) + "px",
+			"width": "20px",
+			"height": "20px"
+		}
+	}).appendTo("body");
+}
 var face; 
 var video;
 var img;
@@ -312,7 +330,18 @@ function runVideo() {
     
     //button to start monitor for intruder
     document.querySelector('#monitor-button').addEventListener('click', function (e) {
-    	startMonitor = true;
+    
+    	if ($('#screenshot-canvas').css('display') != "none") {
+    		
+    		startMonitor = true;
+    		$(this).recording('red');
+    		$('#monitor-button').text('Stop Monitor');
+    		$('#screenshot-canvas').css('display', 'none');
+    		
+    	} else {
+    		startMonitor = false;
+    		$('#monitor-button').text('Start Monitor');
+    	}
     }, false);
 
 }
