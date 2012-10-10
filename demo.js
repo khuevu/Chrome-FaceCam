@@ -32,17 +32,75 @@ function getGeo() {
     navigator.geolocation.clearWatch(watchId);
 }
 
-function compareImage() {
+function colorToGray(pixels) {
+	var grays = new Array();
+	for (var i = 0; i < pixels.length; i += 4) {
+		//fourth layer is alpha
+		av = Math.round((pixels[i] + pixels[i + 1] + pixels[i+ 2]) / 3);
+		if (av == NaN || av === NaN) {
+			console.log('error ');
+		} 
+		grays.push(av);
+	}
+	console.log('grey length ' + grays.length);
+	return grays;
+}
+
+function compareImage(image1, image2) {
+	THRESHOLD_PERCENTAGE = 0.3
+	RANGE = 40;
+	function getEqualRange(v) {
+		a  = (v - RANGE) > 0 ? v - 10: 0;
+		b = (v + RANGE) < 255 ? v + 10 : 255; 
+		return [a, b];
+	}
+	
+	gray1 = colorToGray(image1);
+	gray2 = colorToGray(image2);
+	console.log(Math.max(gray1)  + " - " + Math.min(gray1));
+	console.log(Math.max(gray2) + " - " + Math.min(gray2));
+	diff_count = 0;
+	
+	thres = Math.round(gray1.length * 0.4)
+	for (var i = 0; i < gray1.length; i += 1) {
+		
+		range1 = getEqualRange(gray1[i]);
+		range2 = getEqualRange(gray2[i]);
+		if (range2[1] < range1[0] || range2[0] > range1[1]) {
+			diff_count += 1;
+		}
+	}
+	
+	console.log("number of difference pixel: " + diff_count + " with thres " + thres); 
+	if (diff_count < thres) {
+		//return true if consider the same
+		return true;
+	}
+	
+	return false;
+}
+
+
+function scaleCompareImage() {
+	console.log('invoke scale method');
 	//scale captured image to original image
 	var context2 = canvas2.getContext('2d');
-	context2.translate(canvas2.width / 2, canvas2.height / 2); 
-	context2.scale(canvas.width / canvas2.width, canvas.height / canvas.height);
-	//see how
+	console.log(" ratio scale " + canvas2.width / canvas.width + " - " + canvas2.height / canvas.height);
+	//context2.translate(canvas2.width / 2, canvas2.height / 2); 
+	context2.scale(canvas2.width / canvas.width, canvas2.height / canvas.height);
+	canvas2.width = canvas.width;
+	canvas2.height = canvas.height; 
+	//compare
+	var imageData1 = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+	var imageData2 = context2.getImageData(0, 0, canvas.width, canvas.height);
+	
+	return compareImage(imageData1.data, imageData2.data);
+	
 
 }
 
 function closedEnough(rect) {
-	console.log('video width' + $(video).width() + ' - ' + $(video).height());
+	//console.log('video width' + $(video).width() + ' - ' + $(video).height());
 	if ($(video).width() / 4 < rect[2] && $(video).height() / 4 < rect[3]) {
 		return true;
 	
@@ -50,19 +108,18 @@ function closedEnough(rect) {
     return false;
 }
 
-function captureFaceImage(imageUrl, rect, canvas) {
+function captureFaceImage(imageUrl, rect, painCanvas) {
 	
-	canvas.width = rect[2];
-	canvas.height = rect[3];
+	painCanvas.width = rect[2];
+	painCanvas.height = rect[3];
 	//img.width = rect[2];
 	//img.height = rect[3];
-	var imgCtx = canvas.getContext('2d');
+	var imgCtx = painCanvas.getContext('2d');
 	var imageObj = new Image();
 	imageObj.onload = function() {
 			imgCtx.drawImage(imageObj, rect[0], rect[1], rect[2], rect[3], 0, 0, rect[2], rect[3]);
 		}
 	imageObj.src = imageUrl;
-	
 }
 
 function tick() {
@@ -77,13 +134,13 @@ function tick() {
         }, function (coords) {
             if (coords[0]) {
                 coords = smoother.smooth(coords[0]);
-                console.log(coords);
+                //console.log(coords);
                 face = coords;
                 $(this).highlight(coords, "red");
                
                 if (closedEnough(coords)) {
                 	//capture the face image
-              		if (!faceDetected && faceSampled) {
+              		if (startMonitor && !faceDetected) {
 		            	var tmpCanvas = document.createElement('canvas');
 						tmpCanvas.width = video.videoWidth;
 						tmpCanvas.height = video.videoHeight;
@@ -91,6 +148,7 @@ function tick() {
 						ctx.drawImage(video, 0, 0);
 						//img.src = canvas.toDataURL('image/webp');
 						captureFaceImage(tmpCanvas.toDataURL('image/webp'), coords, canvas2);
+						console.log(scaleCompareImage());
 						faceDetected = true;
 					}
                 }
@@ -123,6 +181,9 @@ var canvas2;
 var smoother = new Smoother(0.85, [0, 0, 0, 0, 0]);
 var faceDetected = false;
 var faceSampled = false;
+var startMonitor = false;
+
+
 
 function runVideo() {
     video = document.querySelector('#screenshot-stream');
@@ -139,8 +200,8 @@ function runVideo() {
             canvas.height = video.videoHeight;
             canvas2.width = video.videoWidth;
             canvas2.height = video.videoHeight;
-            img.height = video.videoHeight;
-            img.width = video.videoWidth;
+            //img.height = video.videoHeight;
+            //img.width = video.videoWidth;
         }, 50);
     }
 
@@ -186,6 +247,11 @@ function runVideo() {
     document.querySelector('#screenshot-stop-button').addEventListener('click', function (e) {
         video.pause();
         localMediaStream.stop();
+    }, false);
+    
+    //button to start monitor for intruder
+    document.querySelector('#monitor-button').addEventListener('click', function (e) {
+    	startMonitor = true;
     }, false);
 
 }
