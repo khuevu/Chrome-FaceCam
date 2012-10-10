@@ -32,23 +32,55 @@ function getGeo() {
     navigator.geolocation.clearWatch(watchId);
 }
 
+function quantizeValue(l) {
+	var q = [25, 75, 125, 175, 225]
+	var quantized = new Array();
+	
+	for (var i = 0; i < l.length; i += 1) {
+		var value = -1; 
+		for (var j = 0; j < q.length; j += 1) {
+			if (l[i] < q[j]) {
+				value = q[j] - 25;
+				quantized.push(value);
+				break;
+			}
+		
+		}
+		
+		if (value == -1) {
+			value = 255;
+			quantized.push(value);
+		}
+	
+	}
+	return quantized;
+}
+
+function extractHistogram(l) {
+	
+}
+
 function colorToGray(pixels) {
 	var grays = new Array();
+	var zero_count = 0;
 	for (var i = 0; i < pixels.length; i += 4) {
 		//fourth layer is alpha
 		av = Math.round((pixels[i] + pixels[i + 1] + pixels[i+ 2]) / 3);
 		if (av == NaN || av === NaN) {
 			console.log('error ');
-		} 
+		} else if (av === 0) {
+			zero_count += 1;
+		}
 		grays.push(av);
 	}
+	console.log('Zero count ' + zero_count);
 	console.log('grey length ' + grays.length);
-	return grays;
+	return quantizeValue(grays);
 }
 
 function compareImage(image1, image2) {
-	THRESHOLD_PERCENTAGE = 0.3
-	RANGE = 40;
+	THRESHOLD_PERCENTAGE = 0.4
+	RANGE = 50;
 	function getEqualRange(v) {
 		a  = (v - RANGE) > 0 ? v - 10: 0;
 		b = (v + RANGE) < 255 ? v + 10 : 255; 
@@ -56,12 +88,13 @@ function compareImage(image1, image2) {
 	}
 	
 	gray1 = colorToGray(image1);
+	
 	gray2 = colorToGray(image2);
 	console.log(Math.max(gray1)  + " - " + Math.min(gray1));
 	console.log(Math.max(gray2) + " - " + Math.min(gray2));
 	diff_count = 0;
 	
-	thres = Math.round(gray1.length * 0.4)
+	thres = Math.round(gray1.length * THRESHOLD_PERCENTAGE)
 	for (var i = 0; i < gray1.length; i += 1) {
 		
 		range1 = getEqualRange(gray1[i]);
@@ -83,17 +116,23 @@ function compareImage(image1, image2) {
 
 function scaleCompareImage() {
 	console.log('invoke scale method');
+	
 	//scale captured image to original image
 	var context2 = canvas2.getContext('2d');
+	/*
 	console.log(" ratio scale " + canvas2.width / canvas.width + " - " + canvas2.height / canvas.height);
 	//context2.translate(canvas2.width / 2, canvas2.height / 2); 
 	context2.scale(canvas2.width / canvas.width, canvas2.height / canvas.height);
+	context2.save();
 	canvas2.width = canvas.width;
 	canvas2.height = canvas.height; 
 	//compare
+	*/
+	
 	var imageData1 = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 	var imageData2 = context2.getImageData(0, 0, canvas.width, canvas.height);
-	
+	//console.log(imageData1.data);
+	//console.log(imageData2.data);
 	return compareImage(imageData1.data, imageData2.data);
 	
 
@@ -122,6 +161,39 @@ function captureFaceImage(imageUrl, rect, painCanvas) {
 	imageObj.src = imageUrl;
 }
 
+
+function captureAndAuthenticate(coords) {
+//capture the face image
+              		if (startMonitor && !faceDetected) {
+		            	var tmpCanvas = document.createElement('canvas');
+						tmpCanvas.width = video.videoWidth;
+						tmpCanvas.height = video.videoHeight;
+						var ctx = tmpCanvas.getContext('2d');
+						ctx.drawImage(video, 0, 0);
+						//img.src = canvas.toDataURL('image/webp');
+						captureFaceImage(tmpCanvas.toDataURL('image/webp'), coords, canvas2);
+						var checkAuth = setInterval(function() {
+							var auth = scaleCompareImage();
+							if (auth) {
+								$('#notification').text('Authorized...');
+								//continue to monitor
+								faceDetected = false;	
+								
+								
+							} else {
+								$('#notification').text('Not authorized. Taking SOME ACTION ...');
+							}
+							clearInterval(checkAuth);
+						
+						}, 1000); 
+						
+						faceDetected = true;
+					}
+
+
+}
+
+
 function tick() {
 	$('#hl').remove();
     window.webkitRequestAnimationFrame(tick);
@@ -139,18 +211,7 @@ function tick() {
                 $(this).highlight(coords, "red");
                
                 if (closedEnough(coords)) {
-                	//capture the face image
-              		if (startMonitor && !faceDetected) {
-		            	var tmpCanvas = document.createElement('canvas');
-						tmpCanvas.width = video.videoWidth;
-						tmpCanvas.height = video.videoHeight;
-						var ctx = tmpCanvas.getContext('2d');
-						ctx.drawImage(video, 0, 0);
-						//img.src = canvas.toDataURL('image/webp');
-						captureFaceImage(tmpCanvas.toDataURL('image/webp'), coords, canvas2);
-						console.log(scaleCompareImage());
-						faceDetected = true;
-					}
+                	captureAndAuthenticate(coords);
                 }
                
               
